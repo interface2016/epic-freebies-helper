@@ -1,146 +1,288 @@
 # Epic Awesome Gamer
 
-一个基于 Playwright + `hcaptcha-challenger` 的 Epic 周免自动领取项目，当前仓库已经针对 GitHub Actions 做了适配，也保留了 Docker 部署方式。
+自动领取 Epic Games 每周免费游戏，支持 GitHub Actions 定时运行，验证码识别支持 `Gemini / AiHubMix / GLM`。
 
-这个分支版本和原版相比，重点变化有两类：
+这份文档分两部分：
 
-- 针对 GitHub Actions 做了自动化运行适配。
-- 在原有 Gemini/AiHubMix 配置之外，新增了 GLM 接入。
+- 前半部分面向普通用户：照着做就能跑起来。
+- 最后是开发者附录：解释项目结构，以及这次适配里踩过的坑。
 
-## 仓库梳理
+## 这是什么
 
-项目入口和职责大致如下：
+这个项目会做 4 件事：
 
-- [`app/deploy.py`](/Users/ronchy2000/Documents/Developer/Workshop/epic-awesome-gamer/app/deploy.py) 是运行入口，负责浏览器启动、登录、领取和调度。
-- [`app/services/epic_authorization_service.py`](/Users/ronchy2000/Documents/Developer/Workshop/epic-awesome-gamer/app/services/epic_authorization_service.py) 负责 Epic 登录和登录后的额外交互。
-- [`app/services/epic_games_service.py`](/Users/ronchy2000/Documents/Developer/Workshop/epic-awesome-gamer/app/services/epic_games_service.py) 负责抓取周免数据、判断是否已入库、加购与下单。
-- [`app/settings.py`](/Users/ronchy2000/Documents/Developer/Workshop/epic-awesome-gamer/app/settings.py) 负责环境变量、模型配置和 LLM 兼容补丁加载。
-- [`app/extensions/llm_adapter.py`](/Users/ronchy2000/Documents/Developer/Workshop/epic-awesome-gamer/app/extensions/llm_adapter.py) 是这次新增的适配层，统一处理 Gemini/AiHubMix 和 GLM。
-- [`.github/workflows/epic-gamer.yml`](/Users/ronchy2000/Documents/Developer/Workshop/epic-awesome-gamer/.github/workflows/epic-gamer.yml) 是 GitHub Actions 定时运行入口。
-- [`docker/docker-compose.yaml`](/Users/ronchy2000/Documents/Developer/Workshop/epic-awesome-gamer/docker/docker-compose.yaml) 是 Docker 部署入口。
+1. 登录 Epic 账号。
+2. 拉取当周免费游戏。
+3. 自动进入商品页并完成领取。
+4. 在需要时处理 hCaptcha 和结账页二次安全校验。
 
-运行链路是：
+默认最推荐的运行方式是 GitHub Actions：
 
-1. 读取环境变量和模型配置。
-2. 启动 Camoufox/Playwright 浏览器。
-3. 登录 Epic。
-4. 拉取 Epic 周免接口，过滤已领取内容。
-5. 进入商品页处理加购、瞬时结账和 hCaptcha。
-6. hCaptcha 由 `hcaptcha-challenger` 调用多模态模型识别。
+- 不需要自己开电脑挂机。
+- 仓库已经带好工作流。
+- 适合绝大多数用户。
 
-## GLM 支持说明
+## 使用前先确认
 
-### 为什么不能只改一个 Base URL
+开始之前，请先确认下面 4 件事：
 
-当前 `hcaptcha-challenger` 内部直接调用的是 `google-genai` 的文件上传和 `generate_content` 多模态接口，不是简单的 HTTP 文本请求。
-
-这意味着：
-
-- Gemini/AiHubMix 这条链路可以继续靠兼容补丁工作。
-- GLM 不能只把 `GEMINI_BASE_URL` 换成智谱地址，否则请求体格式不兼容。
-
-这次新增的 [`app/extensions/llm_adapter.py`](/Users/ronchy2000/Documents/Developer/Workshop/epic-awesome-gamer/app/extensions/llm_adapter.py) 做的事是：
-
-- `LLM_PROVIDER=gemini` 时，继续走原来的 Gemini/AiHubMix 兼容补丁。
-- `LLM_PROVIDER=glm` 时，把 `google-genai` 的调用转成智谱 OpenAI-compatible `chat/completions` 请求。
-- 把图片输入转成 Base64 `image_url`，让 `hcaptcha-challenger` 继续按原来的方式工作。
-
-### 推荐的 GLM 配置
-
-这个项目的验证码识别依赖视觉模型，所以推荐：
-
-- `GLM_BASE_URL=https://open.bigmodel.cn/api/paas/v4`
-- `GLM_MODEL=glm-4.5v`
-
-不建议直接照搬“Coding Plan”里的文本/编程模型配置，因为这里的核心任务是图像理解，不是代码生成。你给的智谱文档可作为接口风格参考：
-
-- [智谱 Coding Plan Quick Start](https://docs.bigmodel.cn/cn/coding-plan/quick-start)
-
-## GitHub Actions 部署
-
-这是最适合这个仓库的方式，原因很直接：
-
-- 免费。
-- 不需要自己挂机。
-- 当前仓库已经提供现成工作流。
-
-### 1. Fork 后设为私有仓库
-
-建议使用私有仓库运行，避免把账号相关操作暴露在公开仓库里。
-
-### 2. 配置 Secrets
-
-进入仓库：
-
-`Settings` -> `Secrets and variables` -> `Actions`
-
-至少需要配置：
-
-| Secret | 必填 | 说明 |
+| 项目 | 是否必须 | 说明 |
 | --- | --- | --- |
-| `EPIC_EMAIL` | 是 | Epic 邮箱，必须关闭 2FA |
-| `EPIC_PASSWORD` | 是 | Epic 密码，必须关闭 2FA |
+| Epic 账号邮箱 | 是 | 用来登录 Epic |
+| Epic 账号密码 | 是 | 用来登录 Epic |
+| 关闭 2FA | 是 | 必须关闭邮箱 / 短信 / App 二次验证 |
+| 多模态模型 API Key | 是 | 用来识别 hCaptcha |
 
-如果你使用 Gemini/AiHubMix，再加：
+### 为什么必须关闭 2FA
 
-| Secret | 必填 | 说明 |
-| --- | --- | --- |
-| `GEMINI_API_KEY` | 是 | Gemini 或 AiHubMix API Key |
-| `GEMINI_BASE_URL` | 否 | 默认是 `https://aihubmix.com` |
-| `GEMINI_MODEL` | 否 | 默认是 `gemini-2.5-pro` |
-| `LLM_PROVIDER` | 否 | 推荐显式设为 `gemini` |
+这个项目运行在无头自动化环境里。  
+如果账号开启了邮箱验证码、短信验证码、验证器 App 等二次验证，流程通常会被卡住。
 
-如果你使用 GLM，再加：
+建议到 Epic 账号安全设置里，把这些验证方式先全部关闭，再运行项目。
 
-| Secret | 必填 | 说明 |
-| --- | --- | --- |
-| `GLM_API_KEY` | 是 | 智谱 API Key |
-| `GLM_BASE_URL` | 否 | 默认是 `https://open.bigmodel.cn/api/paas/v4` |
-| `GLM_MODEL` | 否 | 推荐 `glm-4.5v` |
-| `LLM_PROVIDER` | 建议 | 设为 `glm`，避免和 Gemini 配置混用时歧义 |
+## 5 分钟快速开始
 
-如果你不填 `LLM_PROVIDER`，程序会在存在 `GLM_API_KEY` 时自动切到 `glm`。
+### 第 1 步：Fork 仓库
 
-如果你想细分不同验证码任务使用的模型，也可以额外配置这些可选 Secrets：
+把这个仓库 Fork 到你自己的 GitHub 账号下。
 
+建议 Fork 完后立刻改成私有仓库，原因很简单：
+
+- 更适合保存自己的 Actions 配置。
+- 不容易误暴露运行记录。
+- 后续改 Secrets 更安心。
+
+### 第 2 步：打开 GitHub Actions
+
+进入你自己的 Fork 仓库后：
+
+1. 打开 `Actions`
+2. 如果 GitHub 提示是否启用工作流，点击启用
+
+这个仓库里的工作流名称是：
+
+- `Epic Awesome Gamer (Scheduled)`
+
+它默认每天执行一次，你也可以手动触发。
+
+### 第 3 步：配置 Secrets
+
+进入：
+
+- `Settings`
+- `Secrets and variables`
+- `Actions`
+
+然后按下面的表格添加。
+
+## 推荐配置：GLM
+
+如果你想少折腾，优先推荐 GLM。
+
+至少需要这些 Secrets：
+
+| Secret | 必填 | 示例 | 说明 |
+| --- | --- | --- | --- |
+| `EPIC_EMAIL` | 是 | `you@example.com` | Epic 登录邮箱 |
+| `EPIC_PASSWORD` | 是 | `your-password` | Epic 登录密码 |
+| `LLM_PROVIDER` | 是 | `glm` | 明确指定使用 GLM |
+| `GLM_API_KEY` | 是 | `xxxxxxxx` | 智谱 API Key |
+| `GLM_MODEL` | 是 | `glm-4.6v-flash` | 视觉模型名 |
+
+通常不需要手动填写下面这些，留空即可：
+
+- `GLM_BASE_URL`
 - `CHALLENGE_CLASSIFIER_MODEL`
 - `IMAGE_CLASSIFIER_MODEL`
 - `SPATIAL_POINT_REASONER_MODEL`
 - `SPATIAL_PATH_REASONER_MODEL`
 
-### 3. 启用工作流权限
+原因是当前代码会自动兜底：
 
-在仓库设置里确认：
+- `GLM_BASE_URL` 默认走 `https://open.bigmodel.cn/api/paas/v4`
+- 4 个任务模型默认跟随 `GLM_MODEL`
 
-- `Actions` -> `General` -> `Workflow permissions`
-- 选择 `Read and write permissions`
+### 一份最小可用的 GLM Secrets 清单
 
-### 4. 手动运行一次
-
-进入 `Actions` 页面，选择 `Epic Awesome Gamer (Scheduled)`，点击 `Run workflow` 先跑一次。
-
-当前工作流做的事情是：
-
-- 安装 Python 3.12 和 `uv`
-- 安装依赖
-- 拉取 Camoufox 浏览器资源
-- 在虚拟显示环境里执行 `uv run app/deploy.py`
-
-## Docker 部署
-
-如果你更想在 VPS/NAS 上自己跑，也可以用 Docker。
-
-修改 [`docker/docker-compose.yaml`](/Users/ronchy2000/Documents/Developer/Workshop/epic-awesome-gamer/docker/docker-compose.yaml) 或 [`docker/.env`](/Users/ronchy2000/Documents/Developer/Workshop/epic-awesome-gamer/docker/.env)。
-
-Gemini/AiHubMix 示例：
-
-```yaml
-environment:
-  - LLM_PROVIDER=gemini
-  - GEMINI_API_KEY=sk-xxxx
-  - GEMINI_BASE_URL=https://aihubmix.com
-  - GEMINI_MODEL=gemini-2.5-pro
+```text
+EPIC_EMAIL=你的 Epic 邮箱
+EPIC_PASSWORD=你的 Epic 密码
+LLM_PROVIDER=glm
+GLM_API_KEY=你的智谱 API Key
+GLM_MODEL=glm-4.6v-flash
 ```
+
+如果你已经验证过其他模型名在自己账号下可用，也可以继续用你自己的模型名。  
+代码不会强制限制模型名，最终以智谱接口是否接受为准。
+
+## 可选配置：Gemini / AiHubMix
+
+如果你不用 GLM，也可以用 Gemini 或 AiHubMix。
+
+需要这些 Secrets：
+
+| Secret | 必填 | 示例 | 说明 |
+| --- | --- | --- | --- |
+| `EPIC_EMAIL` | 是 | `you@example.com` | Epic 登录邮箱 |
+| `EPIC_PASSWORD` | 是 | `your-password` | Epic 登录密码 |
+| `LLM_PROVIDER` | 建议 | `gemini` | 建议显式指定 |
+| `GEMINI_API_KEY` | 是 | `xxxxxxxx` | Gemini 或 AiHubMix Key |
+| `GEMINI_BASE_URL` | 否 | `https://aihubmix.com` | 不填就走默认值 |
+| `GEMINI_MODEL` | 否 | `gemini-2.5-pro` | 不填就走默认值 |
+
+## 第 4 步：手动跑一次
+
+进入 `Actions` 页面后：
+
+1. 选择 `Epic Awesome Gamer (Scheduled)`
+2. 点击 `Run workflow`
+3. 等待运行完成
+
+第一次手动跑的目的很明确：
+
+- 检查 Secrets 是否配对了
+- 检查 Epic 账号能不能正常登录
+- 检查模型是否真的能识别当前验证码
+
+## 第 5 步：看成功没有
+
+如果领取成功，常见日志通常会接近下面这种状态：
+
+```text
+Login success
+Right account validation success
+Authentication completed
+Starting free games collection process
+All week-free games are already in the library
+```
+
+注意最后这句：
+
+- `All week-free games are already in the library`
+
+它的意思是：
+
+- 当前周免已经在库里
+- 这次运行没有发现还没领的内容
+
+如果是第一次运行，也可能会看到加购、结账、验证码和确认领取相关日志，这都正常。
+
+## 运行后去哪里看截图和日志
+
+每次 GitHub Actions 运行结束后，工作流会自动上传两个 artifact：
+
+- `epic-runtime-<run_id>`
+- `epic-logs-<run_id>`
+
+下载位置：
+
+1. 进入本次 Actions 运行页面
+2. 拉到页面底部
+3. 找到 `Artifacts`
+4. 下载 zip 文件
+
+下载后建议先看这两个目录：
+
+- `app/volumes/runtime/purchase_debug/`
+- `app/volumes/logs/`
+
+如果你碰到“明明没领到，但日志里看不明白”，这些文件通常最有用。
+
+## 常见问题
+
+### 1. 登录偶尔失败，一次成功一次失败
+
+这是正常现象之一。
+
+GitHub Actions 使用的是共享云 IP，Epic 对风控比较敏感。常见现象包括：
+
+- 登录页验证码一次过，一次不过
+- `captcha_invalid`
+- 登录响应超时
+- 同一个账号隔一会儿又能成功
+
+建议做法：
+
+- 先不要连续狂点十几次重跑
+- 失败后稍等几分钟再跑一次
+- 确认账号已经关闭 2FA
+
+### 2. 页面弹出 `One more step`
+
+这不是异常，是 Epic 结账阶段追加的人机校验。
+
+现在项目已经能处理这类二次安全验证。  
+你看到下面这种弹窗，不代表脚本坏了：
+
+![Checkout Security Check](docs/images/checkout-security-check.png)
+
+常见题型包括：
+
+- 拖拽题
+- 点选题
+- 多选图片题
+
+### 3. 页面提示 `Device not supported`
+
+这个提示通常出现在：
+
+- 商品只支持 Windows
+- GitHub Actions 运行环境是 Linux
+
+这不代表没法领。  
+现在代码会自动尝试点击 `Continue` 继续流程。
+
+### 4. 为什么工作流显示成功，但游戏没入库
+
+这类问题过去确实出现过，常见根因包括：
+
+- 商品页状态识别不准
+- `Place Order` 已点击，但结账页还在二次验证
+- 页面上出现了额外弹窗
+- 以前某些文案误判成“已拥有”
+
+现在仓库已经把这类问题尽量改成：
+
+- 不确认成功，就不报成功
+- 自动保存截图和文本
+- 把 checkout 中间状态保留下来方便排查
+
+### 5. 为什么日志里会看到 `btoa is read-only`
+
+这是 `hcaptcha-challenger` 在某些页面注入 HSW 脚本时的兼容性噪声。  
+它不一定会导致本次运行失败。
+
+如果最后仍然成功登录或成功领取，这条通常可以先忽略。
+
+### 6. 模型额度用完会是什么表现
+
+如果真的是模型额度、鉴权或者限流问题，通常更像下面这些：
+
+- HTTP `429`
+- 智谱业务错误码
+- 明确的 auth / quota / rate-limit 提示
+
+如果日志已经显示模型正常返回了坐标或题型，一般就不是“额度耗尽”。
+
+## 推荐的使用方式
+
+如果你只是想稳定领取周免，推荐下面这套：
+
+1. 使用 GitHub Actions
+2. 使用 GLM 视觉模型
+3. 账号关闭 2FA
+4. Secrets 只保留最少必需项
+5. 首次手动跑通，再交给定时任务
+
+这套配置最省心，也最容易排错。
+
+## Docker 用法
+
+如果你不想用 GitHub Actions，也可以在自己的服务器、NAS 或本地 Docker 环境里跑。
+
+主要入口是：
+
+- [`docker/docker-compose.yaml`](docker/docker-compose.yaml)
 
 GLM 示例：
 
@@ -149,19 +291,110 @@ environment:
   - LLM_PROVIDER=glm
   - GLM_API_KEY=your_glm_key
   - GLM_BASE_URL=https://open.bigmodel.cn/api/paas/v4
-  - GLM_MODEL=glm-4.5v
+  - GLM_MODEL=glm-4.6v-flash
 ```
 
-如果你希望不同任务用不同模型，也可以继续覆盖这些变量：
+Gemini / AiHubMix 示例：
 
-- `CHALLENGE_CLASSIFIER_MODEL`
-- `IMAGE_CLASSIFIER_MODEL`
-- `SPATIAL_POINT_REASONER_MODEL`
-- `SPATIAL_PATH_REASONER_MODEL`
+```yaml
+environment:
+  - LLM_PROVIDER=gemini
+  - GEMINI_API_KEY=your_key
+  - GEMINI_BASE_URL=https://aihubmix.com
+  - GEMINI_MODEL=gemini-2.5-pro
+```
 
-未单独配置时，程序会优先复用 `GLM_MODEL` 或 `GEMINI_MODEL`。
+## 开发者附录
 
-## 本地开发
+普通用户看到这里基本就够了。  
+如果你想继续改项目、提 PR、或者自己二次开发，再看这一部分。
+
+### 项目结构
+
+- [`app/deploy.py`](app/deploy.py)
+  运行入口，负责浏览器启动、登录、领取和调度。
+- [`app/services/epic_authorization_service.py`](app/services/epic_authorization_service.py)
+  负责登录、登录结果监听和登录后验证。
+- [`app/services/epic_games_service.py`](app/services/epic_games_service.py)
+  负责周免发现、商品页进入、加购、结账、checkout 验证处理。
+- [`app/settings.py`](app/settings.py)
+  负责环境变量、模型路由和默认值。
+- [`app/extensions/llm_adapter.py`](app/extensions/llm_adapter.py)
+  负责 Gemini/AiHubMix/GLM 兼容适配。
+- [`.github/workflows/epic-gamer.yml`](.github/workflows/epic-gamer.yml)
+  GitHub Actions 工作流入口。
+
+### 这次适配里真正踩过的坑
+
+下面这些不是猜测，都是这次实际遇到并修过的问题。
+
+#### 1. GLM 不是简单改个 Base URL 就能用
+
+`hcaptcha-challenger` 内部调用的是 `google-genai` 风格的多模态接口。  
+所以接 GLM 时，不能只把 `GEMINI_BASE_URL` 改成智谱地址。
+
+真正要做的是：
+
+- 保留上层调用方式
+- 在适配层里把图片、消息和结构化输出转换成 GLM 能接受的格式
+
+#### 2. 不同验证码阶段，题型真的会变
+
+登录阶段和 checkout 阶段的题型不一定一样。  
+这次实际碰到过：
+
+- `image_drag_single`
+- `image_label_multi_select`
+
+如果适配层只对拖拽题做兼容，结账时就会死在第二道验证上。
+
+#### 3. GLM 的输出格式并不稳定
+
+这次遇到过的返回形式包括：
+
+- `Source Position: (...)`
+- `{"source": [...], "target": [...]}`
+- `{"answer":"..."}`
+- 只返回题型名，比如 `image_label_multi_select`
+- 坏掉的半结构化 JSON
+
+所以 [`llm_adapter.py`](app/extensions/llm_adapter.py) 现在做了很多“解包和转 schema”的兼容。
+
+#### 4. Epic checkout 不只会弹 hCaptcha
+
+这次已经确认过，结账过程中可能出现：
+
+- `Device not supported`
+- `One more step`
+- 额外的 checkout iframe
+- 页面仍停留在 `Place Order`，但实际上还没确认成功
+
+因此 [`epic_games_service.py`](app/services/epic_games_service.py) 现在做了这些事：
+
+- 检查设备不支持弹窗并尝试继续
+- 识别 checkout 安全校验
+- 在 `Place Order` 后循环观察真实结果
+- 没确认成功就不误报成功
+
+#### 5. “已拥有”判断不能扫整页文本
+
+曾经误把页面里的版权文本 `owned by ...` 当成了“已拥有”。  
+后来修正成：
+
+- 优先看按钮和 checkout 状态
+- 只识别高精度成功文案
+
+#### 6. artifact 非常重要
+
+真正把问题定位清楚，靠的不只是控制台日志，还包括：
+
+- `app/volumes/runtime/purchase_debug/*.png`
+- `app/volumes/runtime/purchase_debug/*.txt`
+- `app/volumes/logs/`
+
+如果没有这些 artifact，很多 checkout 问题只能靠猜。
+
+### 本地开发命令
 
 ```bash
 uv sync
@@ -169,32 +402,14 @@ uv run black . -C -l 100
 uv run ruff check --fix
 ```
 
-注意：
+### 注意事项
 
-- 仓库说明明确写了“测试不允许执行”，所以不要补跑测试。
-- 首次运行前要准备好浏览器依赖和对应 API Key。
-
-## 常见问题
-
-### 1. GitHub Actions 登录超时
-
-GitHub 共享 IP 有时会被 Epic 风控。出现登录超时，通常换个时间重新运行即可。
-
-### 2. GLM 返回模型或接口错误
-
-先检查三项：
-
-- `LLM_PROVIDER=glm`
-- `GLM_BASE_URL=https://open.bigmodel.cn/api/paas/v4`
-- `GLM_MODEL=glm-4.5v`
-
-如果用了纯文本模型，验证码识别大概率会失败，因为这里必须处理图片。
-
-### 3. 必须关闭 2FA 吗
-
-是。这个项目运行在无头自动化环境里，无法稳定处理短信或邮箱二次验证。
+- 这个仓库当前不建议补跑测试。
+- 改动验证码链路时，优先保留日志和截图。
+- 改动 checkout 流程时，优先保证“未确认成功就不要报成功”。
 
 ## 免责声明
 
-- 本项目仅用于学习和技术研究。
-- 自动化操作可能违反 Epic 服务条款，使用风险自担。
+- 本项目仅用于学习和研究自动化流程。
+- 自动化操作可能违反相关平台的服务条款，请自行评估风险。
+- 使用本项目产生的后果由使用者自行承担。
