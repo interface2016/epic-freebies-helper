@@ -95,6 +95,50 @@ def _normalize_glm_response_text(text: str) -> str:
     return stripped
 
 
+def _normalize_glm_payload(payload: dict[str, Any]) -> dict[str, Any]:
+    if "source" in payload and "target" in payload:
+        source = payload.get("source") or {}
+        target = payload.get("target") or {}
+        return {
+            "challenge_prompt": payload.get("challenge_prompt", ""),
+            "inferred_rule": payload.get("inferred_rule", ""),
+            "paths": [
+                {
+                    "start_point": {
+                        "x": int(source.get("x", 0)),
+                        "y": int(source.get("y", 0)),
+                    },
+                    "end_point": {
+                        "x": int(target.get("x", 0)),
+                        "y": int(target.get("y", 0)),
+                    },
+                }
+            ],
+        }
+
+    if "from" in payload and "to" in payload:
+        source = payload.get("from") or {}
+        target = payload.get("to") or {}
+        return {
+            "challenge_prompt": payload.get("challenge_prompt", ""),
+            "inferred_rule": payload.get("inferred_rule", ""),
+            "paths": [
+                {
+                    "start_point": {
+                        "x": int(source.get("x", 0)),
+                        "y": int(source.get("y", 0)),
+                    },
+                    "end_point": {
+                        "x": int(target.get("x", 0)),
+                        "y": int(target.get("y", 0)),
+                    },
+                }
+            ],
+        }
+
+    return payload
+
+
 class _UploadedFile:
     def __init__(self, uri: str, mime_type: str):
         self.name = uri
@@ -233,7 +277,7 @@ class _GLMAsyncModels:
             return None
 
         try:
-            payload = _extract_json_payload(text)
+            payload = _normalize_glm_payload(_extract_json_payload(text))
         except Exception:
             return None
 
