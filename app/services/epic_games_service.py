@@ -217,19 +217,53 @@ class EpicGames:
                             await button.evaluate("(element) => element.click()")
                             return True
 
+        with suppress(Exception):
+            clicked = await page.evaluate(
+                """
+                () => {
+                  const isVisible = (element) => {
+                    const rect = element.getBoundingClientRect();
+                    const style = window.getComputedStyle(element);
+                    return rect.width > 0 && rect.height > 0 &&
+                      style.visibility !== 'hidden' &&
+                      style.display !== 'none';
+                  };
+
+                  const candidates = Array.from(document.querySelectorAll('button'))
+                    .filter((button) => (button.innerText || '').trim() === 'Continue')
+                    .filter(isVisible);
+
+                  const button = candidates.at(-1);
+                  if (!button) {
+                    return false;
+                  }
+
+                  button.click();
+                  return true;
+                }
+                """
+            )
+            if clicked:
+                return True
+
         return False
 
     @staticmethod
     async def _is_claimed_state(page: Page, url: str) -> bool:
-        claim_markers = [
+        button_claim_markers = [
             "IN LIBRARY",
             "OWNED",
             "IN YOUR LIBRARY",
             "ALREADY OWNED",
             "VIEW IN LIBRARY",
             "GO TO LIBRARY",
+        ]
+        page_claim_markers = [
             "THANK YOU FOR YOUR ORDER",
             "ORDER CONFIRMED",
+            "IN YOUR LIBRARY",
+            "VIEW IN LIBRARY",
+            "GO TO LIBRARY",
         ]
 
         if URL_CART_SUCCESS in page.url:
@@ -239,13 +273,20 @@ class EpicGames:
         page_text = await EpicGames._page_text(page)
         button_text = await EpicGames._purchase_button_text(page)
 
-        if any(marker in button_text for marker in claim_markers):
-            logger.success(f"Claim success inferred from purchase button state '{button_text}' - {url=}")
-            return True
+        for marker in button_claim_markers:
+            if marker in button_text:
+                logger.success(
+                    f"Claim success inferred from purchase button marker '{marker}' - {url=}"
+                )
+                return True
 
-        if any(marker in page_text for marker in claim_markers):
-            logger.success(f"Claim success inferred from page text markers - {url=}")
-            return True
+        for marker in page_claim_markers:
+            if marker in page_text:
+                logger.success(f"Claim success inferred from page text marker '{marker}' - {url=}")
+                return True
+
+        if "GET" == button_text and "DEVICE NOT SUPPORTED" in page_text:
+            logger.warning(f"Page still shows Get and device modal text; claim is not complete - {url=}")
 
         return False
 
