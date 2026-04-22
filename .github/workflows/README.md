@@ -40,7 +40,7 @@
 | `LLM_PROVIDER` | 建议设为 `glm` |
 | `GLM_API_KEY` | 智谱 API Key |
 | `GLM_BASE_URL` | 可选，默认 `https://open.bigmodel.cn/api/paas/v4` |
-| `GLM_MODEL` | 可选，推荐 `glm-4.5v` |
+| `GLM_MODEL` | 可选，推荐 `glm-4.6v` |
 
 程序会优先读取这些模型覆盖项，如果未设置，则自动回落到 `GLM_MODEL` 或 `GEMINI_MODEL`：
 
@@ -60,7 +60,8 @@
 - Gemini/AiHubMix 继续使用原有兼容补丁。
 - GLM 会自动转成智谱 OpenAI-compatible `chat/completions` 请求。
 
-这也是为什么 GLM 这里推荐 `glm-4.5v` 这类视觉模型，而不是纯文本的编码模型。
+这也是为什么 GLM 这里推荐 `glm-4.6v` 这类视觉模型，而不是纯文本的编码模型。
+如果你用 `glm-4.6v-flash` 遇到“该模型当前访问量过大，请您稍后重试”，直接改成 `GLM_MODEL=glm-4.6v` 通常更稳。
 
 ## 建议的首次启动流程
 
@@ -70,20 +71,29 @@
 4. 到 `Actions` 页面手动运行一次。
 5. 查看日志确认是否完成登录和领取。
 
+## Fork 后如何和主仓库同步
+
+为了避免你 Fork 的仓库代码落后，建议定期和上游主仓库（`Ronchy2000/epic-freebies-helper`）同步，尤其在遇到异常报错时先同步再重试。网页端直接在 Fork 仓库默认分支点击 `Sync fork` -> `Update branch` 即可；如果提示冲突，就点 `Compare changes` 按引导发起并合并 Pull Request，之后再回到 Actions 重新运行一次工作流。
+
 ## 常见问题
 
 ### 1. Action 运行了但登录卡住
 
 GitHub 的共享出口 IP 可能被 Epic 风控。通常换个时间重新执行就能恢复。
 
-### 2. GLM 报 400/401
+### 2. GLM 报 429/400/401
 
 优先检查：
 
+- 如果日志里出现 `message=该模型当前访问量过大，请您稍后再试` 或 HTTP `429`，优先把 `GLM_MODEL` 改为 `glm-4.6v`（不要用 `glm-4.6v-flash`）。
 - `LLM_PROVIDER=glm`
 - `GLM_BASE_URL=https://open.bigmodel.cn/api/paas/v4`
-- `GLM_MODEL=glm-4.5v`
+- `GLM_MODEL=glm-4.6v`
 - API Key 是否仍然有效
+
+示例日志（429 限流）：
+
+![GLM 429 rate limit log](../../docs/images/faq/glm-429-rate-limit.png)
 
 ### 3. 为什么每天跑一次而不是每周跑一次
 

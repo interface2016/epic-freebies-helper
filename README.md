@@ -17,6 +17,8 @@
 
 还没有智谱账号的话，可以通过这个邀请链接注册：[BigModel.cn 邀请注册链接](https://www.bigmodel.cn/invite?icode=A75tQCByIvrO4k6SLkU5BQZ3c5owLmCCcMQXWcJRS8E%3D)。
 
+社区交流与反馈欢迎前往：[LINUX DO](https://linux.do)。
+
 ---
 
 ## 功能概览
@@ -38,7 +40,8 @@
 如果你是第一次接触这类项目，直接从 GLM 开始会更容易跑通。核心原因很简单：
 
 - 配置更少：主要只要设置 `GLM_API_KEY` 和 `GLM_MODEL`。
-- 成本更低：`glm-4.6v-flash` 和 `glm-4.5v` 的免费额度足够覆盖周免领取场景。
+- 成本更低：`glm-4.6v` 的免费额度通常足够覆盖周免领取场景。
+- 更稳：`glm-4.6v-flash` 在高峰期偶尔会报“该模型当前访问量过大，请您稍后重试”，建议直接使用 `glm-4.6v`。
 - 对国内用户更友好：不需要先解决 Google AI Studio 注册和可用性问题。
 - 能力已验证：登录验证码、checkout 二次验证、拖拽/点选/多选题都能正常处理。
 
@@ -74,7 +77,7 @@
 | `EPIC_PASSWORD` | 你的 Epic 密码 |
 | `LLM_PROVIDER` | glm |
 | `GLM_API_KEY` | 你的智谱 API Key |
-| `GLM_MODEL` | glm-4.6v-flash |
+| `GLM_MODEL` | glm-4.6v |
 
 配置页面示例：
 ![GLM API获取](docs/images/tutorial/GLM-API.png)
@@ -84,6 +87,7 @@
 可选项：
 
 - `GLM_BASE_URL` 留空即可使用默认值。
+- 推荐把 `GLM_MODEL` 设为 `glm-4.6v`；`glm-4.6v-flash` 在高峰期可能报“该模型当前访问量过大，请您稍后重试”。
 - `CHALLENGE_CLASSIFIER_MODEL`、`IMAGE_CLASSIFIER_MODEL`、`SPATIAL_POINT_REASONER_MODEL`、`SPATIAL_PATH_REASONER_MODEL` 留空即可跟随 `GLM_MODEL`。
 - 如果要改 Gemini 路线，把 `LLM_PROVIDER` 设为 `gemini` 并配置 `GEMINI_API_KEY`。
 
@@ -198,7 +202,7 @@ environment:
   - LLM_PROVIDER=glm
   - GLM_API_KEY=your_glm_key
   - GLM_BASE_URL=https://open.bigmodel.cn/api/paas/v4
-  - GLM_MODEL=glm-4.6v-flash
+  - GLM_MODEL=glm-4.6v
 ```
 
 Gemini / AiHubMix 示例：
@@ -235,6 +239,7 @@ docker compose up -d --build
 | --- | --- |
 | [QIN2DIM/epic-awesome-gamer](https://github.com/QIN2DIM/epic-awesome-gamer) | 原始项目与核心自动化思路来源 |
 | [10000ge10000/epic-kiosk](https://github.com/10000ge10000/epic-kiosk) | GitHub Actions 化和文档组织方式的重要参考 |
+| [LINUX DO](https://linux.do) | 社区交流、反馈与项目推广支持 |
 
 感谢原作者和维护者的工作。
 
