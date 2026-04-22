@@ -72,7 +72,10 @@ async def execute_browser_tasks(headless: bool = True):
         # Handle Epic Games authentication
         logger.debug("Initiating Epic Games authentication")
         agent = EpicAuthorization(page)
-        await agent.invoke()
+        is_authenticated = await agent.invoke()
+        if not is_authenticated:
+            logger.error("Authentication failed, aborting this run")
+            return
         logger.debug("Authentication completed")
 
         # Execute a free games collection on new page

@@ -18,71 +18,79 @@ SCREENSHOTS_DIR = VOLUMES_DIR.joinpath("screenshots")
 RECORD_DIR = VOLUMES_DIR.joinpath("record")
 HCAPTCHA_DIR = VOLUMES_DIR.joinpath("hcaptcha")
 
+
+def _env(name: str, default: str | None = None) -> str | None:
+    value = os.getenv(name)
+    if value is None:
+        return default
+    value = value.strip()
+    return value or default
+
 # === 配置类定义 ===
 class EpicSettings(AgentConfig):
     model_config = SettingsConfigDict(env_file=".env", env_ignore_empty=True, extra="ignore")
 
     GEMINI_API_KEY: SecretStr | None = Field(
-        default_factory=lambda: os.getenv("GEMINI_API_KEY") or os.getenv("GLM_API_KEY"),
+        default_factory=lambda: _env("GEMINI_API_KEY") or _env("GLM_API_KEY"),
         description="Gemini/AiHubMix API key",
     )
 
     GEMINI_BASE_URL: str = Field(
-        default=os.getenv("GEMINI_BASE_URL", "https://aihubmix.com"),
+        default_factory=lambda: _env("GEMINI_BASE_URL", "https://aihubmix.com"),
         description="Gemini/AiHubMix base URL",
     )
 
     GEMINI_MODEL: str = Field(
-        default=os.getenv("GEMINI_MODEL", "gemini-2.5-pro"),
+        default_factory=lambda: _env("GEMINI_MODEL", "gemini-2.5-pro"),
         description="Gemini default model",
     )
 
     LLM_PROVIDER: str = Field(
-        default=os.getenv("LLM_PROVIDER", "glm" if os.getenv("GLM_API_KEY") else "gemini"),
+        default_factory=lambda: _env("LLM_PROVIDER", "glm" if _env("GLM_API_KEY") else "gemini"),
         description="Supported values: gemini, glm",
     )
 
     GLM_API_KEY: SecretStr | None = Field(
-        default_factory=lambda: os.getenv("GLM_API_KEY"),
+        default_factory=lambda: _env("GLM_API_KEY"),
         description="GLM API key",
     )
 
     GLM_BASE_URL: str = Field(
-        default=os.getenv("GLM_BASE_URL", "https://open.bigmodel.cn/api/paas/v4"),
+        default_factory=lambda: _env("GLM_BASE_URL", "https://open.bigmodel.cn/api/paas/v4"),
         description="GLM OpenAI-compatible base URL",
     )
 
     GLM_MODEL: str = Field(
-        default=os.getenv("GLM_MODEL", "glm-4.5v"),
+        default_factory=lambda: _env("GLM_MODEL", "glm-4.5v"),
         description="GLM vision-capable default model",
     )
 
-    EPIC_EMAIL: str = Field(default_factory=lambda: os.getenv("EPIC_EMAIL"))
-    EPIC_PASSWORD: SecretStr = Field(default_factory=lambda: os.getenv("EPIC_PASSWORD"))
+    EPIC_EMAIL: str = Field(default_factory=lambda: _env("EPIC_EMAIL"))
+    EPIC_PASSWORD: SecretStr = Field(default_factory=lambda: _env("EPIC_PASSWORD"))
     DISABLE_BEZIER_TRAJECTORY: bool = Field(default=True)
 
     CHALLENGE_CLASSIFIER_MODEL: str = Field(
-        default_factory=lambda: os.getenv("CHALLENGE_CLASSIFIER_MODEL")
-        or os.getenv("GLM_MODEL")
-        or os.getenv("GEMINI_MODEL")
+        default_factory=lambda: _env("CHALLENGE_CLASSIFIER_MODEL")
+        or _env("GLM_MODEL")
+        or _env("GEMINI_MODEL")
         or "gemini-2.5-flash"
     )
     IMAGE_CLASSIFIER_MODEL: str = Field(
-        default_factory=lambda: os.getenv("IMAGE_CLASSIFIER_MODEL")
-        or os.getenv("GLM_MODEL")
-        or os.getenv("GEMINI_MODEL")
+        default_factory=lambda: _env("IMAGE_CLASSIFIER_MODEL")
+        or _env("GLM_MODEL")
+        or _env("GEMINI_MODEL")
         or "gemini-2.5-pro"
     )
     SPATIAL_POINT_REASONER_MODEL: str = Field(
-        default_factory=lambda: os.getenv("SPATIAL_POINT_REASONER_MODEL")
-        or os.getenv("GLM_MODEL")
-        or os.getenv("GEMINI_MODEL")
+        default_factory=lambda: _env("SPATIAL_POINT_REASONER_MODEL")
+        or _env("GLM_MODEL")
+        or _env("GEMINI_MODEL")
         or "gemini-2.5-pro"
     )
     SPATIAL_PATH_REASONER_MODEL: str = Field(
-        default_factory=lambda: os.getenv("SPATIAL_PATH_REASONER_MODEL")
-        or os.getenv("GLM_MODEL")
-        or os.getenv("GEMINI_MODEL")
+        default_factory=lambda: _env("SPATIAL_PATH_REASONER_MODEL")
+        or _env("GLM_MODEL")
+        or _env("GEMINI_MODEL")
         or "gemini-2.5-pro"
     )
 
