@@ -76,6 +76,9 @@ If `glm-4.6v-flash` starts returning overload messages such as "the current mode
 4. Trigger one manual run from the `Actions` page.
 5. Inspect the logs to confirm that login and claiming both completed.
 
+> [!IMPORTANT]
+> Do not cancel the workflow just because it is still retrying after around 5 minutes. Login captcha and checkout verification can fail repeatedly, retry many times, and even hit timeouts before finally passing. Some successful runs still take 15 to 20 minutes.
+
 ## Keeping Your Fork Updated
 
 To avoid running outdated code in your fork, sync regularly with the upstream repository (`Ronchy2000/epic-freebies-helper`), especially before retrying after an unexpected failure.
@@ -87,6 +90,10 @@ On the GitHub web UI, open your fork's default branch, click `Sync fork` -> `Upd
 ### 1. The Action ran but login got stuck
 
 Epic may rate-limit or risk-control GitHub's shared outbound IPs. In many cases, rerunning at a different time resolves it.
+
+If the logs are still retrying captcha challenges, do not click `Cancel workflow` too early. A run that ends in a manual cancel like the example below does not prove the automation had already failed after only a few minutes:
+
+![Do not cancel the Actions run too early](../../docs/images/faq/action-cancel-too-early.svg)
 
 ### 2. GLM returns 429 / 400 / 401
 

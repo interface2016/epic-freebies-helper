@@ -106,6 +106,9 @@ Optional notes:
 - Select `Epic Awesome Gamer (Scheduled)`.
 - Click `Run workflow`.
 
+> [!IMPORTANT]
+> Do not cancel the workflow just because it is still retrying after about 5 minutes. Login captcha and checkout security checks can legitimately fail, retry, time out, and then continue again. Some runs still succeed only after 15 to 20 minutes, so as long as the workflow is still progressing, wait a bit longer.
+
 ### 4. Check the logs
 
 When the run succeeds, the logs usually contain lines like:
@@ -121,6 +124,10 @@ All week-free games are already in the library
 Example log with warnings but final success:
 
 ![Warnings but final success log example](docs/images/tutorial/step4-log-success-with-warnings-1.png)
+
+If the logs show repeated retries and you cancel the run manually, like the example below, that still does not prove the automation had already failed. In many cases it simply had not finished yet:
+
+![Do not cancel the Actions run too early](docs/images/faq/action-cancel-too-early.svg)
 
 ---
 
@@ -156,6 +163,8 @@ These files are generated and uploaded after each GitHub Actions run. They are n
 ### 1. Login sometimes fails and sometimes succeeds
 
 That is normal. GitHub Actions uses shared cloud IPs and Epic is sensitive to risk control. Typical symptoms include a captcha that passes once and fails the next time, occasional `captcha_invalid`, or the same account succeeding again after some delay.
+
+Also, do not hit `Cancel workflow` just because the run has been active for a few minutes. Some successful cases only finish after heavy retry loops and can take 10 to 20 minutes.
 
 ### 2. The page shows `One more step`
 

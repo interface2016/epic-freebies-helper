@@ -76,6 +76,9 @@
 4. 到 `Actions` 页面手动运行一次。
 5. 查看日志确认是否完成登录和领取。
 
+> [!IMPORTANT]
+> 不要看到工作流运行了 5 分钟左右还在重试就手动取消。登录验证码和 checkout 二次校验可能会连续失败、反复重试，甚至中途出现 timeout；这属于正常现象，有些最终成功的案例会持续 15 到 20 分钟。
+
 ## Fork 后如何和主仓库同步
 
 为了避免你 Fork 的仓库代码落后，建议定期和上游主仓库（`Ronchy2000/epic-freebies-helper`）同步，尤其在遇到异常报错时先同步再重试。网页端直接在 Fork 仓库默认分支点击 `Sync fork` -> `Update branch` 即可；如果提示冲突，就点 `Compare changes` 按引导发起并合并 Pull Request，之后再回到 Actions 重新运行一次工作流。
@@ -85,6 +88,10 @@
 ### 1. Action 运行了但登录卡住
 
 GitHub 的共享出口 IP 可能被 Epic 风控。通常换个时间重新执行就能恢复。
+
+如果日志里一直在做 captcha 重试，不要太早点 `Cancel workflow`。下面这种“最后是取消结束”的例子，并不代表脚本在第 5 分钟就已经真正失败了：
+
+![不要过早取消 Actions 运行](../../docs/images/faq/action-cancel-too-early.svg)
 
 ### 2. GLM 报 429/400/401
 

@@ -106,6 +106,9 @@
 - 选择 `Epic Awesome Gamer (Scheduled)`。
 - 点击 `Run workflow`。
 
+> [!IMPORTANT]
+> 不要看到运行了 5 分钟左右还在重试就手动取消。登录验证码和 checkout 二次校验本来就可能反复失败、重试、超时后再继续，有些最终成功的案例会持续 15 到 20 分钟；只要工作流还在继续跑，请先耐心等待。
+
 ### 4. 看日志确认是否跑通
 
 成功时日志通常会出现类似内容：
@@ -121,6 +124,10 @@ All week-free games are already in the library
 示例日志（中间有报错但最终成功）：
 
 ![中间报错但最终成功的日志示例 1](docs/images/tutorial/step4-log-success-with-warnings-1.png)
+
+如果你在日志里看到多次重试后手动取消，像下面这样，也不一定代表脚本已经失败；很多时候只是还没跑完：
+
+![不要过早取消 Actions 运行](docs/images/faq/action-cancel-too-early.svg)
 
 ---
 
@@ -168,6 +175,8 @@ All week-free games are already in the library
 ### 1. 登录偶尔失败，一次成功一次失败
 
 这是正常现象之一。GitHub Actions 使用的是共享云 IP，Epic 对风控比较敏感。常见表现包括登录页验证码一次过、一次不过，偶发 `captcha_invalid`，或者同一个账号隔一会儿又能成功。
+
+另外，不要看到运行了几分钟还没结束就手动点 `Cancel workflow`。有些成功案例会在大量重试后，10 到 20 分钟才最终通过。
 
 ### 2. 页面弹出 `One more step`
 
