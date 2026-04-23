@@ -15,9 +15,12 @@
 
 This project is aimed at regular users who want to auto-claim Epic Games weekly freebies. The default setup runs on GitHub Actions, so you do not need a server or a machine that stays online all the time. If you have a GitHub account, you can get started directly.
 
+Completely free.  
+With GitHub Actions, you can automate Epic weekly freebies without a server or a machine running 24/7.
+
 The project is built on top of community open-source work and now includes domestic `GLM` multimodal support. In practice it can handle login, captcha solving, and the claim flow reliably. If Google AI Studio or the Gemini API is inconvenient for you, the GLM path is usually easier and can often be run at `0` cost.
 
-If you choose the `GLM` route, you usually need to complete Zhipu's real-name verification first, or the API may not be available to your account.
+**If you choose the `GLM` route, make sure the related Zhipu account has already passed real-name verification, or the API may remain unavailable.**
 
 If you do not have a Zhipu account yet, you can register through this invite link: [BigModel.cn invite link](https://www.bigmodel.cn/invite?icode=A75tQCByIvrO4k6SLkU5BQZ3c5owLmCCcMQXWcJRS8E%3D).
 
@@ -36,8 +39,6 @@ If the project worked for you, feel free to leave a message here too: [🎉 Succ
 | Auto claim | Opens product pages and completes the checkout flow |
 | Captcha handling | Supports login captcha and checkout security checks |
 | Scheduled execution | Can run directly on GitHub Actions |
-
-GitHub Actions is the recommended runtime because it does not require your own machine to stay online, and the workflow is already included in this repository.
 
 ---
 
@@ -59,8 +60,6 @@ If this is your first time using a project like this, starting with GLM is usual
 - Epic account 2FA must be disabled (email, SMS, or authenticator app).
 - A GLM account with `GLM_API_KEY` prepared for captcha solving.
 
-This project runs in a headless automation environment. If the account still requires email codes, SMS codes, or authenticator approval, the flow will usually get stuck.
-
 ---
 
 ## 🚀 Quick Start
@@ -76,7 +75,7 @@ In most cases, the first successful validation can be finished in about 10 minut
 
 Go to `Settings` -> `Secrets and variables` -> `Actions`, then fill in these five values first:
 
-If you plan to use `GLM_API_KEY`, make sure the related Zhipu account has already passed real-name verification, or the API may remain unavailable.
+**If you plan to use `GLM_API_KEY`, make sure the related Zhipu account has already passed real-name verification, or the API may remain unavailable.**
 
 | Secret | Example value |
 | --- | --- |
@@ -115,8 +114,6 @@ Authentication completed
 Starting free games collection process
 All week-free games are already in the library
 ```
-
-Note: you may still see intermediate errors such as `wait for captcha response timeout` or `btoa is read-only`. In the current flow these can be non-fatal noise. If the run ends with success logs and exits normally, the execution can still be treated as successful.
 
 Example log with warnings but final success:
 
@@ -179,10 +176,6 @@ Historically, the common root causes were:
 | `Place Order` was clicked but checkout was still incomplete | The checkout page was still blocked by a security check |
 | Another popup interrupted the flow | For example `Device not supported` or an extra confirmation |
 | Older logic misclassified page text | Some non-ownership text was previously misread as "already owned" |
-
-### 5. Why do logs sometimes show `btoa is read-only`?
-
-That is compatibility noise from `hcaptcha-challenger` while injecting an HSW script on certain pages. It does not always mean the current run failed.
 
 ---
 

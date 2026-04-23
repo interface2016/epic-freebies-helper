@@ -15,9 +15,12 @@
 
 面向普通用户的 Epic 周免自动领取项目，默认通过 GitHub Actions 运行，不需要服务器或本地常驻环境；只要有 GitHub 账号，就可以直接开始。
 
+完全免费。  
+用 GitHub Actions 就能自动领取 Epic 周免，不需要服务器，不需要本地挂机。
+
 本项目基于社区开源方案持续完善，并接入了国产 `GLM` 多模态模型。实测可稳定处理登录、验证码和领取流程；对于不方便注册 Google AI Studio、难以使用 Gemini API 的用户，GLM 路线更省心，`0` 成本即可跑通。
 
-如果你选择 `GLM` 路线，需要先完成智谱账号实名认证，否则通常无法正常使用 API。
+**如果你选择 `GLM` 路线，请先确认对应智谱账号已经完成实名认证，否则通常无法正常使用 API。**
 
 还没有智谱账号的话，可以通过这个邀请链接注册：[BigModel.cn 邀请注册链接](https://www.bigmodel.cn/invite?icode=A75tQCByIvrO4k6SLkU5BQZ3c5owLmCCcMQXWcJRS8E%3D)。
 
@@ -36,8 +39,6 @@
 | 自动领取 | 自动进入商品页并完成结账流程 |
 | 验证码处理 | 支持登录验证码和 checkout 二次安全校验 |
 | 定时执行 | 可直接使用 GitHub Actions 定时运行 |
-
-推荐运行方式是 GitHub Actions，因为它不需要自己开电脑挂机，仓库也已经带好了可直接使用的工作流。
 
 ---
 
@@ -59,9 +60,6 @@
 - 关闭 Epic 账号 2FA（邮箱/短信/验证器）。
 - 注册 GLM 并准备 `GLM_API_KEY`（用于验证码识别）。
 
-这个项目运行在无头自动化环境里。  
-如果账号开启了邮箱验证码、短信验证码、验证器 App 等二次验证，流程通常会被卡住。
-
 ---
 
 ## 🚀 快速开始
@@ -77,7 +75,7 @@
 
 进入 `Settings` -> `Secrets and variables` -> `Actions`，先填这 5 个：
 
-如果你使用 `GLM_API_KEY`，请先确认对应智谱账号已经完成实名认证，否则 API 很可能不可用。
+**如果你使用 `GLM_API_KEY`，请先确认对应智谱账号已经完成实名认证，否则 API 很可能不可用。**
 
 | Secret | 示例值 |
 | --- | --- |
@@ -116,8 +114,6 @@ Authentication completed
 Starting free games collection process
 All week-free games are already in the library
 ```
-
-说明：流程中间偶尔会看到报错（例如 `wait for captcha response timeout` 或 `btoa is read-only`），这在当前场景下可能是正常噪声；只要最后出现成功日志并正常结束，就可以视为本次执行成功。
 
 示例日志（中间有报错但最终成功）：
 
@@ -192,11 +188,6 @@ All week-free games are already in the library
 | `Place Order` 已点击但未完成 | 结账页仍停留在二次验证 |
 | 页面出现额外弹窗 | 例如设备不支持、额外确认 |
 | 旧逻辑误判 | 曾经把普通文案误判成“已拥有” |
-
-### 5. 为什么日志里会看到 `btoa is read-only`
-
-这是 `hcaptcha-challenger` 在某些页面注入 HSW 脚本时的兼容性噪声。  
-它不一定会导致本次运行失败。
 
 ---
 
